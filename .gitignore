@@ -1,5 +1,6 @@
 service-handler-api/
 uav-api/
+gcs-proxy/
 
 .vscode
 
