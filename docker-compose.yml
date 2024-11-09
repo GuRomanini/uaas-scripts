@@ -1,0 +1,62 @@
+services:
+  gcs-proxy:
+    build:
+      context: ./gcs-proxy
+      dockerfile: ./Dockerfile
+    container_name: gcs-proxy-container
+    ports:
+      - "8080:8080"
+    networks:
+      - ground-network
+    environment:
+      APP_ENV: local
+      GUNICORN_WORKERS: 6
+      GUNICORN_WORKER_TIMEOUT: 360
+      GUNICORN_RELOAD: True
+      SERVICE_NAME: gcs-proxy
+      API_PORT: 8080
+      SERVICE_HANDLER_API_SERVICE_ADDRESS: https://service-handler-api-636548090700.us-central1.run.app
+      SERVICE_HANDLER_API_SERVICE_TIMEOUT: 60
+
+  uav-api:
+    build:
+      context: ./uav-api
+      dockerfile: ./Dockerfile
+    container_name: uav-api-container
+    ports:
+      - "3000:3000"
+    networks:
+      - ground-network
+    environment:
+      APP_ENV: local
+      GUNICORN_WORKERS: 1
+      GUNICORN_WORKER_TIMEOUT: 360
+      GUNICORN_RELOAD: True
+      SERVICE_NAME: uav-api
+      API_PORT: 3000
+      INTERNAL_TOKEN: internal@123
+      GCS_PROXY_ADDRESS: http://gcs-proxy:8080
+      UAV_API_ADDRESS: 189.29.145.218:3000
+
+    depends_on:
+      - gcs-proxy
+
+  ngrok:
+    image: ngrok/ngrok:3.18.2-alpine-052f181
+    restart: unless-stopped
+    command:
+      - "http"
+      - "uav-api:3000"
+    container_name: ngrok-container
+    networks:
+      - ground-network
+    environment:
+      NGROK_AUTHTOKEN: 2oSIq7eQdSrGvm28cnFqFlgD6Fz_43UqkNRDSY7CGoj1TLtkX
+    ports:
+      - 4040:4040
+    depends_on:
+      - uav-api
+      
+networks:
+  ground-network:
+    driver: bridge
